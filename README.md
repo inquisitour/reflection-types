@@ -92,7 +92,7 @@ dune exec editor test/example.func
 
 ## Related Work
 
-- [Full Research Survey](Research.md) - Detailed analysis of OCaml reflection types (2023-2025)
+- [Full Research Survey](docs/Research.md) - Detailed analysis of OCaml reflection types (2023-2025)
 - Jane Street's `Base` library - Production GADT usage
 - `refl` library - Universal PPX deriver for runtime types
 - HOL Light - OCaml-based theorem prover leveraging type safety
