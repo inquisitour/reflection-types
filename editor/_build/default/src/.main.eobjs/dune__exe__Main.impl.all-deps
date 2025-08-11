@@ -1,0 +1,9 @@
+dune__exe__Editor
+dune__exe__File_ops
+dune__exe__Gl_proof_checker
+dune__exe__Gl_syntax
+dune__exe__Interpreter_integration
+dune__exe__Lexer
+dune__exe__Syntax
+dune__exe__Terminal
+dune__exe__Types

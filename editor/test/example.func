@@ -1,0 +1,5 @@
+{
+  square = x.mult x x, 
+  result = square 5    
+}
+result

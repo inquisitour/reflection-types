@@ -1,0 +1,12 @@
+(lang dune 3.0)
+(name editor)
+(version 0.1.0)
+
+(package
+ (name editor)
+ (synopsis "Syntax-aware editor for a functional programming language")
+ (description "A terminal-based editor with syntax highlighting for the functional language from the folder interpreter.")
+ (depends
+  ocaml
+  dune
+  ANSITerminal))

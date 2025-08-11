@@ -1,0 +1,5 @@
+(executable
+ (public_name editor)
+ (name main)
+ (modules types terminal file_ops lexer syntax highlight editor gadt_types practical_gadts editor_gadts gl_proof_checker gl_syntax interpreter_integration main)
+ (libraries ANSITerminal unix))

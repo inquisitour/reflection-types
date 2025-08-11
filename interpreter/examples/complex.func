@@ -1,0 +1,6 @@
+[
+  a=5,
+  b=mult a 2, 
+  c=plus b a
+]
+c

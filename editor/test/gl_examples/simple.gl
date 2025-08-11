@@ -1,0 +1,5 @@
+(* Simple GL proof test *)
+let p = Atom "p"
+let q = Atom "q"
+let proof1 = AxiomK (p, q)
+demo ()

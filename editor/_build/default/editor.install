@@ -1,0 +1,7 @@
+lib: [
+  "_build/install/default/lib/editor/META"
+  "_build/install/default/lib/editor/dune-package"
+]
+bin: [
+  "_build/install/default/bin/editor"
+]
