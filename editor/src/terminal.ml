@@ -182,3 +182,59 @@ let show_cursor () =
 let hide_cursor () =
   print_string Ansi.cursor_hide;
   flush Stdlib.stdout
+
+
+(** Save and restore cursor position *)
+let save_cursor_position () =
+  print_string Ansi.cursor_save;
+  flush Stdlib.stdout
+
+let restore_cursor_position () =
+  print_string Ansi.cursor_restore;
+  flush Stdlib.stdout
+
+(** Better screen clearing *)
+let clear_and_home () =
+  print_string Ansi.clear_screen;
+  print_string Ansi.cursor_home;
+  flush Stdlib.stdout
+
+(** Fix cursor positioning issues *)
+let fix_cursor_position () =
+  (* Move to known position and clear any artifacts *)
+  print_string "\r";  (* Carriage return *)
+  flush Stdlib.stdout
+
+(** Enhanced move_cursor with bounds checking *)
+let move_cursor_safe row col max_rows max_cols =
+  let safe_row = max 0 (min row (max_rows - 1)) in
+  let safe_col = max 0 (min col (max_cols - 1)) in
+  print_string (Ansi.move_cursor safe_row safe_col);
+  flush Stdlib.stdout
+
+(** Better terminal initialization *)
+let init_enhanced () =
+  let tattr = tcgetattr stdin in
+  original_terminal_state := Some tattr;
+  
+  (* Enhanced raw mode settings *)
+  let raw_attr = {
+    tattr with
+    c_icanon = false;
+    c_echo = false;
+    c_vmin = 1;
+    c_vtime = 0;
+    c_isig = false;
+    c_ixon = false;
+    c_icrnl = false;
+    c_opost = false;
+    c_inlcr = false;   (* Don't translate NL to CR *)
+    c_igncr = false;   (* Don't ignore CR *)
+  } in
+  
+  tcsetattr stdin TCSAFLUSH raw_attr;
+  
+  (* Clear and initialize screen properly *)
+  clear_and_home ();
+  print_string Ansi.cursor_hide;
+  flush Stdlib.stdout

@@ -1,4 +1,4 @@
-(* main.ml - Main entry point for the editor *)
+(* main.ml - Main entry point for the editor with enhanced terminal handling *)
 
 open Types
 
@@ -212,7 +212,7 @@ module Display = struct
     flush Stdlib.stdout
 end
 
-(** Main event loop *)
+(** Main event loop with enhanced terminal handling *)
 let rec event_loop state config =
   (* Render the current state *)
   Display.render state config;
@@ -259,19 +259,74 @@ let rec event_loop state config =
             (* Run the program through Task 2 interpreter *)
             Interpreter_integration.run_with_output_window state
 
-        (* GL-specific commands - use different shortcuts *)
+        (* Enhanced GL-specific commands *)
         | `Control 'L' | `Control 'l' ->
             (* L for "Lint" - Check GL syntax *)
-            Editor.check_gl_syntax_command state
+            let mode = Editor.get_mode state in
+            if mode = GLProofMode then (
+              let result = Gl_syntax.check_gl_syntax state.lines in
+              let message = match result with
+                | Ok msg -> "GL Syntax: " ^ msg
+                | Error err -> "GL Error: " ^ err
+              in
+              { state with status_message = message }
+            ) else
+              { state with status_message = "Not in GL mode (file must end with .gl)" }
             
         | `Control 'E' | `Control 'e' ->
-            (* E for "Evaluate" - Run GL demo *)
-            Editor.run_gl_demo state
+            (* E for "Evaluate" - Run GL demo with proper screen management *)
+            let mode = Editor.get_mode state in
+            if mode = GLProofMode then (
+              (* Clear screen and show demo *)
+              Terminal.clear_and_home ();
+              Terminal.show_cursor ();
+              
+              (* Display header *)
+              Terminal.set_attributes [Bold; FgColor Green];
+              print_string "═══════════════════════════════════════════════\r\n";
+              Printf.printf " Running GL Proof Demo: %s\r\n" 
+                (match state.filename with Some f -> f | None -> "unnamed");
+              print_string "═══════════════════════════════════════════════\r\n";
+              Terminal.set_attributes [];
+              print_string "\r\n";
+              flush Stdlib.stdout;
+              
+              (* Run the demo *)
+              (try 
+                 Gl_syntax.run_gl_demo ();
+                 print_string "\r\n";
+                 Terminal.set_attributes [Bold; FgColor Green];
+                 print_string "═══════════════════════════════════════════════\r\n";
+                 print_string " ✓ GL proof demonstration completed successfully!\r\n";
+               with e -> 
+                 print_string "\r\n";
+                 Terminal.set_attributes [Bold; FgColor Red];
+                 print_string "═══════════════════════════════════════════════\r\n";
+                 Printf.printf " ✗ GL demo error: %s\r\n" (Printexc.to_string e));
+              
+              print_string " Press any key to return to editor...\r\n";
+              print_string "═══════════════════════════════════════════════\r\n";
+              Terminal.set_attributes [];
+              flush Stdlib.stdout;
+              
+              (* Wait for keypress *)
+              ignore (Terminal.read_key ());
+              
+              (* Return to editor cleanly *)
+              Terminal.clear_and_home ();
+              { state with status_message = "GL demo completed" }
+            ) else
+              { state with status_message = "Not in GL mode" }
             
         | `Control 'H' | `Control 'h' ->
-            (* H for "Help" - Show commands *)
-            { state with status_message = 
-                "Ctrl-L: Check GL | Ctrl-E: Run GL | Ctrl-S: Save | Ctrl-X: Quit | Ctrl-R: Run interpreter" }
+            (* H for "Help" - Show commands based on file type *)
+            let mode = Editor.get_mode state in
+            let help_msg = match mode with
+              | GLProofMode -> "GL Mode: Ctrl-L: Check syntax | Ctrl-E: Run demo | Ctrl-S: Save | Ctrl-X: Quit"
+              | ReflectionMode -> "Reflection Mode: Ctrl-R: Run examples | Ctrl-S: Save | Ctrl-X: Quit"
+              | FunctionalMode -> "Functional Mode: Ctrl-R: Run interpreter | Ctrl-S: Save | Ctrl-X: Quit"
+            in
+            { state with status_message = help_msg }
         
         (* Other keys *)
         | `Escape -> 
@@ -326,7 +381,7 @@ let _prompt_filename message =
   Terminal.hide_cursor ();
   read_chars ""
 
-(** Main function *)
+(** Main function with enhanced initialization *)
 let main () =
   (* Parse command line arguments *)
   let filename = 
@@ -336,8 +391,8 @@ let main () =
       None 
   in
   
-  (* Initialize terminal *)
-  Terminal.init ();
+  (* Use enhanced terminal initialization *)
+  Terminal.init_enhanced ();
   
   (* Set up cleanup on exit *)
   at_exit Terminal.cleanup;
@@ -349,11 +404,19 @@ let main () =
       | None -> Editor.create_empty ()
     in
     
+    (* Detect file mode and show appropriate help message *)
+    let mode_message = match Editor.get_mode initial_state with
+      | GLProofMode -> "GL Mode: Ctrl-L: Check | Ctrl-E: Run demo | Ctrl-H: Help | Ctrl-X: Quit"
+      | ReflectionMode -> "Reflection Mode: Ctrl-R: Run | Ctrl-H: Help | Ctrl-X: Quit"
+      | FunctionalMode -> "Functional Mode: Ctrl-R: Run | Ctrl-H: Help | Ctrl-X: Quit"
+    in
+    
     (* Ensure syntax analysis is initialized *)
     let initial_state = 
-      if initial_state.syntax = None then
-        { initial_state with syntax = Some (Syntax.analyze initial_state.lines) }
-      else initial_state
+      let updated_state = { initial_state with status_message = mode_message } in
+      if updated_state.syntax = None then
+        { updated_state with syntax = Some (Syntax.analyze updated_state.lines) }
+      else updated_state
     in
     
     (* Load configuration *)
