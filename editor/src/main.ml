@@ -274,47 +274,38 @@ let rec event_loop state config =
               { state with status_message = "Not in GL mode (file must end with .gl)" }
             
         | `Control 'E' | `Control 'e' ->
-            (* E for "Evaluate" - Run GL demo with proper screen management *)
+            (* E for "Evaluate" - Run GL demo with COMPLETE terminal management *)
             let mode = Editor.get_mode state in
             if mode = GLProofMode then (
-              (* Clear screen and show demo *)
-              Terminal.clear_and_home ();
-              Terminal.show_cursor ();
+              (* STEP 1: Initialize demo mode *)
+              Terminal.init_demo_mode ();
               
-              (* Display header *)
-              Terminal.set_attributes [Bold; FgColor Green];
-              print_string "═══════════════════════════════════════════════\r\n";
-              Printf.printf " Running GL Proof Demo: %s\r\n" 
+              (* STEP 2: Display header *)
+              print_string "═══════════════════════════════════════════════\n";
+              Printf.printf " Running GL Proof Demo: %s\n" 
                 (match state.filename with Some f -> f | None -> "unnamed");
-              print_string "═══════════════════════════════════════════════\r\n";
-              Terminal.set_attributes [];
-              print_string "\r\n";
-              flush Stdlib.stdout;
+              print_string "═══════════════════════════════════════════════\n\n";
+              flush stdout;
               
-              (* Run the demo *)
+              (* STEP 3: Run the demo *)
               (try 
-                 Gl_syntax.run_gl_demo ();
-                 print_string "\r\n";
-                 Terminal.set_attributes [Bold; FgColor Green];
-                 print_string "═══════════════════════════════════════════════\r\n";
-                 print_string " ✓ GL proof demonstration completed successfully!\r\n";
-               with e -> 
-                 print_string "\r\n";
-                 Terminal.set_attributes [Bold; FgColor Red];
-                 print_string "═══════════════════════════════════════════════\r\n";
-                 Printf.printf " ✗ GL demo error: %s\r\n" (Printexc.to_string e));
+                Gl_syntax.run_gl_demo ();
+              with e -> 
+                Printf.printf "\n❌ GL demo error: %s\n" (Printexc.to_string e));
               
-              print_string " Press any key to return to editor...\r\n";
-              print_string "═══════════════════════════════════════════════\r\n";
-              Terminal.set_attributes [];
-              flush Stdlib.stdout;
+              (* STEP 4: Show completion message *)
+              print_string "\n═══════════════════════════════════════════════\n";
+              print_string " Press any key to return to editor...\n";
+              print_string "═══════════════════════════════════════════════\n";
+              flush stdout;
               
-              (* Wait for keypress *)
-              ignore (Terminal.read_key ());
+              (* STEP 5: Wait for keypress *)
+              let _ = input_char stdin in
               
-              (* Return to editor cleanly *)
-              Terminal.clear_and_home ();
-              { state with status_message = "GL demo completed" }
+              (* STEP 6: Reinitialize for editor *)
+              Terminal.reinit_for_editor ();
+              
+              { state with status_message = "GL demo completed - returned to editor" }
             ) else
               { state with status_message = "Not in GL mode" }
             

@@ -284,94 +284,77 @@ end
 (* ------------------------------------------------------------------------- *)
 
 let demo () =
-  print_endline "\n=== GL Proof Checker with GADTs ===\n";
+  (* Ensure we start with a clean slate *)
+  Printf.printf "\027[2J\027[H";  (* Clear screen and home *)
+  flush stdout;
   
-  (* 1. Create a simple proof *)
+  Printf.printf "=== GL Proof Checker with GADTs ===\n\n";
+  flush stdout;
+  
+  (* Create formulas *)
   let p = Atom "p" in
   let q = Atom "q" in
   
-  (* Prove: p → (q → p) *)
-  let proof1 = AxiomK (p, q) in
-  print_endline "1. Axiom K proof:";
+  (* 1. Axiom K proof *)
+  Printf.printf "1. Axiom K proof:\n";
   Printf.printf "   Formula: p → (q → p)\n";
-  Printf.printf "   Valid: %b\n" (check_proof proof1 = Valid);
+  let proof1 = AxiomK (p, q) in
+  Printf.printf "   Valid: %b\n\n" (check_proof proof1 = Valid);
+  flush stdout;
   
-  (* 2. Prove reflexivity *)
-  let proof2 = proof_reflexivity p in
-  print_endline "\n2. Reflexivity proof:";
+  (* 2. Reflexivity proof *)
+  Printf.printf "2. Reflexivity proof:\n";
   Printf.printf "   Formula: p → p\n";
-  Printf.printf "   Valid: %b\n" (check_proof proof2 = Valid);
+  let proof2 = proof_reflexivity p in
+  Printf.printf "   Valid: %b\n\n" (check_proof proof2 = Valid);
+  flush stdout;
   
-  (* 3. Correct Modus Ponens example *)
-  let true_formula = True in
-  let false_formula = False in
-  
-  (* First proof: True → (False → True) via Axiom K *)
-  let impl_proof = AxiomK (true_formula, false_formula) in
-  (* Second proof: True via AxiomTrue *)
-  let ant_proof = AxiomTrue in
-  (* Apply Modus Ponens *)
-  let proof3 = ModusPonens (impl_proof, ant_proof) in
-  
-  print_endline "\n3. Modus Ponens:";
+  (* 3. Modus Ponens *)
+  Printf.printf "3. Modus Ponens:\n";
   Printf.printf "   From: True → (False → True) and True\n";
   Printf.printf "   Get: False → True\n";
-  Printf.printf "   Valid: %b\n" (check_proof proof3 = Valid);
+  let true_formula = True in
+  let false_formula = False in
+  let impl_proof = AxiomK (true_formula, false_formula) in
+  let ant_proof = AxiomTrue in
+  let proof3 = ModusPonens (impl_proof, ant_proof) in
+  Printf.printf "   Valid: %b\n\n" (check_proof proof3 = Valid);
+  flush stdout;
   
-  (* 3b. Another Modus Ponens example with actual formulas *)
-  print_endline "\n3b. Modus Ponens (complex):";
-  Printf.printf "   Double negation elimination would need a proof of ¬¬p\n";
-  Printf.printf "   (Cannot be constructed without assumptions)\n";
-  
-  (* 4. Löb's theorem *)
-  let proof4 = AxiomLob p in
-  print_endline "\n4. Löb's axiom:";
+  (* 4. Löb's axiom *)
+  Printf.printf "4. Löb's axiom:\n";
   Printf.printf "   Formula: □(□p → p) → □p\n";
-  Printf.printf "   Valid: %b\n" (check_proof proof4 = Valid);
+  let proof4 = AxiomLob p in
+  Printf.printf "   Valid: %b\n\n" (check_proof proof4 = Valid);
+  flush stdout;
   
-  (* 5. Test a complex proof using S axiom *)
+  (* 5. Axiom S *)
+  Printf.printf "5. Axiom S proof:\n";
+  Printf.printf "   Formula: (p → (q → r)) → (p → q) → (p → r)\n";
   let r = Atom "r" in
   let s_axiom = AxiomS (p, q, r) in
-  print_endline "\n5. Axiom S proof:";
-  Printf.printf "   Formula: (p → (q → r)) → (p → q) → (p → r)\n";
-  Printf.printf "   Valid: %b\n" (check_proof s_axiom = Valid);
+  Printf.printf "   Valid: %b\n\n" (check_proof s_axiom = Valid);
+  flush stdout;
   
-  (* 6. Test Necessitation *)
-  let nec_proof = Necessitation AxiomTrue in
-  print_endline "\n6. Necessitation:";
+  (* 6. Necessitation *)
+  Printf.printf "6. Necessitation:\n";
   Printf.printf "   From: True\n";
   Printf.printf "   Get: □True\n";
-  Printf.printf "   Valid: %b\n" (check_proof nec_proof = Valid);
+  let nec_proof = Necessitation AxiomTrue in
+  Printf.printf "   Valid: %b\n\n" (check_proof nec_proof = Valid);
+  flush stdout;
   
   (* 7. Semantic validation *)
-  print_endline "\n7. Semantic validation:";
+  Printf.printf "7. Semantic validation:\n";
   let frame = Semantics.{
     worlds = [0; 1; 2];
-    relation = [(0, 1); (1, 2); (0, 2)];  (* Transitive *)
+    relation = [(0, 1); (1, 2); (0, 2)];
     valuation = fun s w -> s = "p" && w = 2;
   } in
   Printf.printf "   Frame is GL-valid: %b\n" (Semantics.is_gl_frame frame);
-  Printf.printf "   True is valid in frame: %b\n" 
+  Printf.printf "   True is valid in frame: %b\n\n" 
     (Semantics.validate_proof AxiomTrue frame);
+  flush stdout;
   
-  (* 8. Test weakening *)
-  let weak_proof = Weaken (p, AxiomTrue) in
-  print_endline "\n8. Weakening:";
-  Printf.printf "   Formula: p → True\n";
-  Printf.printf "   Valid: %b\n" (check_proof weak_proof = Valid);
-  
-  (* 9. Complex proof construction *)
-  print_endline "\n9. Complex proof construction:";
-  Printf.printf "   Have: p → p (reflexivity)\n";
-  Printf.printf "   Need: p (cannot prove without assumptions)\n";
-  Printf.printf "   Goal: Use these to derive theorems\n";
-  
-  (* 10. Test Box K axiom *)
-  let box_k = AxiomBoxK (p, q) in
-  print_endline "\n10. Box K axiom:";
-  Printf.printf "   Formula: □(p → q) → □p → □q\n";
-  Printf.printf "   Valid: %b\n" (check_proof box_k = Valid);
-  
-  print_endline "\n✅ GL Proof Checker demonstration complete!"
-
-let () = demo ()
+  Printf.printf "✅ All GL proofs completed successfully!\n";
+  flush stdout

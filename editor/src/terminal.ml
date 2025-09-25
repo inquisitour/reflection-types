@@ -49,6 +49,19 @@ module Ansi = struct
   let reverse = esc ^ "7m"
 end
 
+(** Complete screen reset *)
+let complete_reset () =
+  print_string "\027[2J";    (* Clear entire screen *)
+  print_string "\027[H";     (* Move cursor to home *)
+  print_string "\027[0m";    (* Reset all attributes *)
+  flush Stdlib.stdout
+
+(** Enhanced clear and home with reset *)
+let clear_and_home_complete () =
+  complete_reset ();
+  print_string Ansi.cursor_hide;
+  flush Stdlib.stdout
+
 (** Initialize terminal for raw mode *)
 let init () =
   let tattr = tcgetattr stdin in
@@ -70,9 +83,60 @@ let init () =
   tcsetattr stdin TCSAFLUSH raw_attr;
   
   (* Clear screen and hide cursor *)
-  print_string Ansi.clear_screen;
-  print_string Ansi.cursor_home;
+  complete_reset ();
   print_string Ansi.cursor_hide;
+  flush Stdlib.stdout
+
+(** Better terminal initialization *)
+let init_enhanced () =
+  let tattr = tcgetattr stdin in
+  original_terminal_state := Some tattr;
+  
+  (* Enhanced raw mode settings *)
+  let raw_attr = {
+    tattr with
+    c_icanon = false;
+    c_echo = false;
+    c_vmin = 1;
+    c_vtime = 0;
+    c_isig = false;
+    c_ixon = false;
+    c_icrnl = false;
+    c_opost = false;
+    c_inlcr = false;   (* Don't translate NL to CR *)
+    c_igncr = false;   (* Don't ignore CR *)
+  } in
+  
+  tcsetattr stdin TCSAFLUSH raw_attr;
+  
+  (* Clear and initialize screen properly *)
+  clear_and_home_complete ();
+  flush Stdlib.stdout
+
+(** Robust terminal reinitialization *)
+let reinit_for_editor () =
+  (* First cleanup any existing state *)
+  (match !original_terminal_state with
+   | Some tattr -> tcsetattr stdin TCSAFLUSH tattr
+   | None -> ());
+  
+  (* Complete screen reset *)
+  complete_reset ();
+  
+  (* Reinitialize fresh *)
+  init_enhanced ()
+
+(** Safe demo mode initialization *)
+let init_demo_mode () =
+  (* Restore normal terminal temporarily *)
+  (match !original_terminal_state with
+   | Some tattr -> 
+       tcsetattr stdin TCSAFLUSH tattr;
+       complete_reset ();
+   | None -> ());
+  
+  (* Set up for demo output *)
+  print_string "\027[?25h";  (* Show cursor *)
   flush Stdlib.stdout
 
 (** Restore terminal to original state *)
@@ -82,8 +146,7 @@ let cleanup () =
       tcsetattr stdin TCSAFLUSH tattr;
       print_string Ansi.cursor_show;
       print_string Ansi.reset;
-      print_string Ansi.clear_screen;
-      print_string Ansi.cursor_home;
+      complete_reset ();
       flush Stdlib.stdout
   | None -> ()
 
@@ -139,6 +202,13 @@ let move_cursor row col =
   print_string (Ansi.move_cursor row col);
   flush Stdlib.stdout
 
+(** Enhanced move_cursor with bounds checking *)
+let move_cursor_safe row col max_rows max_cols =
+  let safe_row = max 0 (min row (max_rows - 1)) in
+  let safe_col = max 0 (min col (max_cols - 1)) in
+  print_string (Ansi.move_cursor safe_row safe_col);
+  flush Stdlib.stdout
+
 (** Apply text attributes *)
 let set_attributes attrs =
   print_string Ansi.reset;
@@ -165,6 +235,12 @@ let clear_screen () =
   print_string Ansi.cursor_home;
   flush Stdlib.stdout
 
+(** Better screen clearing *)
+let clear_and_home () =
+  print_string Ansi.clear_screen;
+  print_string Ansi.cursor_home;
+  flush Stdlib.stdout
+
 (** Write string at position with attributes *)
 let write_at row col str attrs =
   move_cursor row col;
@@ -183,7 +259,6 @@ let hide_cursor () =
   print_string Ansi.cursor_hide;
   flush Stdlib.stdout
 
-
 (** Save and restore cursor position *)
 let save_cursor_position () =
   print_string Ansi.cursor_save;
@@ -193,48 +268,8 @@ let restore_cursor_position () =
   print_string Ansi.cursor_restore;
   flush Stdlib.stdout
 
-(** Better screen clearing *)
-let clear_and_home () =
-  print_string Ansi.clear_screen;
-  print_string Ansi.cursor_home;
-  flush Stdlib.stdout
-
 (** Fix cursor positioning issues *)
 let fix_cursor_position () =
   (* Move to known position and clear any artifacts *)
   print_string "\r";  (* Carriage return *)
-  flush Stdlib.stdout
-
-(** Enhanced move_cursor with bounds checking *)
-let move_cursor_safe row col max_rows max_cols =
-  let safe_row = max 0 (min row (max_rows - 1)) in
-  let safe_col = max 0 (min col (max_cols - 1)) in
-  print_string (Ansi.move_cursor safe_row safe_col);
-  flush Stdlib.stdout
-
-(** Better terminal initialization *)
-let init_enhanced () =
-  let tattr = tcgetattr stdin in
-  original_terminal_state := Some tattr;
-  
-  (* Enhanced raw mode settings *)
-  let raw_attr = {
-    tattr with
-    c_icanon = false;
-    c_echo = false;
-    c_vmin = 1;
-    c_vtime = 0;
-    c_isig = false;
-    c_ixon = false;
-    c_icrnl = false;
-    c_opost = false;
-    c_inlcr = false;   (* Don't translate NL to CR *)
-    c_igncr = false;   (* Don't ignore CR *)
-  } in
-  
-  tcsetattr stdin TCSAFLUSH raw_attr;
-  
-  (* Clear and initialize screen properly *)
-  clear_and_home ();
-  print_string Ansi.cursor_hide;
   flush Stdlib.stdout
