@@ -92,6 +92,7 @@ dune exec editor test/example.func
 
 ## Related Work
 
+- [Project Document](docs/reflection-types-ocaml.pdf) - Detailed explaination of the project
 - [Full Research Survey](docs/Research.md) - Detailed analysis of OCaml reflection types (2023-2025)
 - Jane Street's `Base` library - Production GADT usage
 - `refl` library - Universal PPX deriver for runtime types
