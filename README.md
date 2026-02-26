@@ -90,7 +90,7 @@ dune exec editor test/example.func
 - **Practical patterns**: Every GADT example solves real editor problems
 - **Cross-language integration**: OCaml editor executes Python interpreter
 
-## Related Work
+## Documentation and Related Work
 
 - [Project Document](docs/reflection-types-ocaml.pdf) - Detailed explaination of the project
 - [Full Research Survey](docs/Research.md) - Detailed analysis of OCaml reflection types (2023-2025)
