@@ -37,7 +37,7 @@ let gl_token_style = function
   | GLProof -> [FgColor Green]
   | GLFormula -> [FgColor Yellow]
 
-(* Parse GL file to check for errors *)
+(* Parse GL file to check for any errors *)
 let check_gl_syntax lines =
   (* Convert array to list *)
   let lines_list = Array.to_list lines in
